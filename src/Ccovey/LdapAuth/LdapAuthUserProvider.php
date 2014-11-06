@@ -120,8 +120,9 @@ class LdapAuthUserProvider implements UserProviderInterface
                     return $this->addLdapToModel($model, $ldapUserInfo);
                 }
             }
-
-            return new LdapUser((array) $ldapUserInfo);
+	        else {
+		        return new LdapUser((array) $ldapUserInfo);
+	        }
         }
     }
 
