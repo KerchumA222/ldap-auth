@@ -27,7 +27,7 @@ class LdapUser extends Model implements Auth\UserInterface
 		$username = (Config::has('auth.username_field')) ? Config::get('auth.username_field') : 'username';
 		return $this->attributes[$username];
 	}
-    
+
     /**
 	 * Get the password for the user.
 	 *
@@ -45,7 +45,7 @@ class LdapUser extends Model implements Auth\UserInterface
 	 */
 	public function getRememberToken()
 	{
-		return; // this shouldn't be needed as user / password is in ldap
+		return array_get($this->attributes, $this->getRememberTokenName());
 	}
 
 	/**
@@ -56,7 +56,7 @@ class LdapUser extends Model implements Auth\UserInterface
 	 */
 	public function setRememberToken($value)
 	{
-		return; // this shouldn't be needed as user / password is in ldap
+		$this->attributes[$this->getRememberTokenName()] = $value;
 	}
 
 	/**
@@ -66,7 +66,7 @@ class LdapUser extends Model implements Auth\UserInterface
 	 */
 	public function getRememberTokenName()
 	{
-		return; // this shouldn't be needed as user / password is in ldap
+		return 'remember_token';
 	}
 
 	/**
