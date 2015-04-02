@@ -1,15 +1,20 @@
-<?php namespace Ccovey\LdapAuth;
+<?php
+namespace Ccovey\LdapAuth;
 
 use Exception;
 use adLDAP\adLDAP;
 use Illuminate\Auth\Guard;
 use Illuminate\Auth\AuthManager;
 
+/**
+ * Class LdapAuthManager
+ * @package Ccovey\LdapAuth
+ */
 class LdapAuthManager extends AuthManager
 {
     /**
      * 
-     * @return \Config\Packages\Guard
+     * @return \Illuminate\Auth\Guard
      */
     protected function createLdapDriver()
     {
@@ -20,7 +25,7 @@ class LdapAuthManager extends AuthManager
     
     /**
      * 
-     * @return \Config\Packages\LdapUserProvider
+     * @return \Illuminate\Contracts\Auth\UserProvider
      */
     protected function createLdapProvider()
     {
@@ -35,7 +40,11 @@ class LdapAuthManager extends AuthManager
         return new LdapAuthUserProvider($ad, $this->getAuthConfig(), $model);
     }
 
-    protected function getAuthConfig()
+	/**
+	 * @return mixed
+	 * @throws MissingAuthConfigException
+	 */
+	protected function getAuthConfig()
     {
         if ( ! is_null($this->app['config']['auth']) ) {
             return $this->app['config']['auth'];
@@ -43,10 +52,14 @@ class LdapAuthManager extends AuthManager
         throw new MissingAuthConfigException;
     }
 
-    protected function getLdapConfig()
+	/**
+	 * @return array
+	 */
+	protected function getLdapConfig()
     {
-        if (is_array($this->app['config']['adldap'])) return $this->app['config']['adldap'];
-
+        if (is_array($this->app['config']['adldap'])){
+	        return $this->app['config']['adldap'];
+        }
         return array();
     }
 }
@@ -56,8 +69,11 @@ class LdapAuthManager extends AuthManager
 */
 class MissingAuthConfigException extends Exception
 {
-    
-    function __construct()
+
+	/**
+	 *
+	 */
+	function __construct()
     {
         $message = "Please Ensure a config file is present at app/config/auth.php";
 

@@ -1,16 +1,17 @@
-<?php namespace Ccovey\LdapAuth;
+<?php
+namespace Ccovey\LdapAuth;
 
-use Illuminate\Config\Repository;
 use adLDAP;
-use Illuminate\Auth\UserProviderInterface;
-use Illuminate\Auth\UserInterface;
+use Illuminate\Contracts\Auth\UserProvider;
+use Illuminate\Contracts\Auth\Authenticatable;
+use Illuminate\Database\Eloquent\Model;
 
 /**
  * Class to build array to send to GenericUser
  * This allows the fields in the array to be
  * accessed through the Auth::user() method
  */
-class LdapAuthUserProvider implements UserProviderInterface
+class LdapAuthUserProvider implements UserProvider
 {
 	/**
 	 * Active Directory Object
@@ -21,7 +22,7 @@ class LdapAuthUserProvider implements UserProviderInterface
 
 	/**
 	 *
-	 * @var type string
+	 * @var string
 	 */
 	protected $model;
 
@@ -29,8 +30,10 @@ class LdapAuthUserProvider implements UserProviderInterface
 	 * DI in adLDAP object for use throughout
 	 *
 	 * @param adLDAP\adLDAP $conn
+	 * @param array $config
+	 * @param string $model
 	 */
-	public function __construct(adLDAP\adLDAP $conn, $config, $model = null)
+	public function __construct(adLDAP\adLDAP $conn, Array $config, $model = null)
 	{
 		$this->ad = $conn;
 
@@ -44,7 +47,7 @@ class LdapAuthUserProvider implements UserProviderInterface
 	 *
 	 * @param  mixed  $identifier
 	 * @param  mixed  $ldapIdentifier; default to null
-	 * @return Illuminate\Auth\GenericUser|null
+	 * @return \Illuminate\Auth\GenericUser|null
 	 */
 	public function retrieveByID($identifier, $ldapIdentifier = null)
 	{
@@ -72,6 +75,7 @@ class LdapAuthUserProvider implements UserProviderInterface
 		        return new LdapUser((array) $ldapUserInfo);
 	        }
 		}
+		return null;
 	}
 
 	/**
@@ -79,7 +83,7 @@ class LdapAuthUserProvider implements UserProviderInterface
 	 *
 	 * @param  mixed  $identifier
 	 * @param  string  $token
-	 * @return \Illuminate\Auth\UserInterface|null
+	 * @return Model|null
 	 */
 	public function retrieveByToken($identifier, $token)
 	{
@@ -91,16 +95,17 @@ class LdapAuthUserProvider implements UserProviderInterface
 							->where($model->getRememberTokenName(), $token)
 							->first();
 		}
+		return null;
 	}
 
 	/**
 	 * Update the "remember me" token for the given user in storage.
 	 *
-	 * @param  \Illuminate\Auth\UserInterface  $user
+	 * @param  \Illuminate\Contracts\Auth\Authenticatable  $user
 	 * @param  string  $token
 	 * @return void
 	 */
-	public function updateRememberToken(Auth\UserInterface $user, $token)
+	public function updateRememberToken(Authenticatable $user, $token)
 	{
 		if ($this->model) {
 			$model = $this->createModel()
@@ -122,7 +127,7 @@ class LdapAuthUserProvider implements UserProviderInterface
 	 * Retrieve a user by the given credentials.
 	 *
 	 * @param  array  $credentials
-	 * @return Illuminate\Auth\GenericUser|null
+	 * @return Model|null
 	 */
 	public function retrieveByCredentials(array $credentials)
 	{
@@ -150,11 +155,12 @@ class LdapAuthUserProvider implements UserProviderInterface
 	/**
 	 * Validate a user against the given credentials.
 	 *
-	 * @param  Illuminate\Auth\UserInterface  $user
+	 * @param  \Illuminate\Contracts\Auth\Authenticatable  $user
 	 * @param  array  $credentials
 	 * @return bool
 	 */
-	public function validateCredentials(Auth\UserInterface $user, array $credentials)
+
+	public function validateCredentials(Authenticatable $user, array $credentials)
 	{
 		return $this->ad->authenticate($credentials['username'], $credentials['password']);
 	}
@@ -173,6 +179,7 @@ class LdapAuthUserProvider implements UserProviderInterface
 		* If you have 'user' => 'samaccountname' it will set the $info['user'] = $infoCollection->samaccountname
 		* refer to the adLDAP docs for which fields are available.
 		*/
+		$info = [];
 		if ( ! empty($this->config['fields'])) {
 			foreach ($this->config['fields'] as $k => $field) {
 				if ($k == 'groups') {
@@ -205,7 +212,7 @@ class LdapAuthUserProvider implements UserProviderInterface
 
 	/**
 	 *
-	 * @return Illuminate\Auth\UserInterface
+	 * @return \Illuminate\Auth\GenericUser|Model
 	 */
 	public function createModel()
 	{
@@ -217,9 +224,9 @@ class LdapAuthUserProvider implements UserProviderInterface
 	/**
 	 * Add Ldap fields to current user model.
 	 *
-	 * @param Illuminate\Auth\UserInterface $model
-	 * @param adLDAP\collection\adLDAPCollection $ldap
-	 * @return Illuminate\Auth\UserInterface
+	 * @param Model $model
+	 * @param array $ldap
+	 * @return \Illuminate\Auth\GenericUser
 	 */
 	protected function addLdapToModel($model, $ldap)
 	{

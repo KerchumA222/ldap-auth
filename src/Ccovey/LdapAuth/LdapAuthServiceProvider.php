@@ -1,7 +1,12 @@
-<?php namespace Ccovey\LdapAuth;
+<?php
+namespace Ccovey\LdapAuth;
 
 use Illuminate\Support\ServiceProvider;
 
+/**
+ * Class LdapAuthServiceProvider
+ * @package Ccovey\LdapAuth
+ */
 class LdapAuthServiceProvider extends ServiceProvider {
 
 	/**
@@ -35,6 +40,9 @@ class LdapAuthServiceProvider extends ServiceProvider {
 		});
 	}
 
+	/**
+	 * Register the Auth Events
+	 */
 	protected function registerAuthEvents()
 	{
 		$app = $this->app;
