@@ -16,12 +16,18 @@
             "email": "KerchumA222@gmail.com"
         }
     ],
+	"repositories": [
+      {
+        "type": "vcs",
+        "url": "https://github.com/Rich2k/adLDAP"
+      }
+    ],
     "require": {
         "php": ">=5.3.0",
         "illuminate/support": "~5.0",
         "illuminate/auth": "~5.0",
         "illuminate/config": "~5.0",
-        "adldap/adldap": "dev-master"
+        "adldap/adldap": "dev-master#"
     },
     "require-dev": {
         "mockery/mockery": "dev-master"
