@@ -3,7 +3,9 @@ Active Directory LDAP Authentication
 
 Laravel 5 Active Directory LDAP Authentication driver forked from ccovey/ldap-auth.
 The goal is to provide a more robust LDAP Auth Driver for Laravel 5.
+
 Future (near future) features will include:
+-------------------------------------------
 * Full coverage PHPUnit tests
 * Ability to map specific values to the Model from LDAP
 * Ability to map specific persistant values to the model from LDAP to be stored in the database
@@ -17,7 +19,6 @@ Future (near future) features will include:
 * And finally, maybe we could be able to remove some of the setup steps and automate them.
 
 Installation
-
 ------------
 To install this [Active Directory LDAP Authentication](https://github.com/ccovey/ldap-auth) fork in your application, add the following to your `composer.json` file
 
