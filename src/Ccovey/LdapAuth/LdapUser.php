@@ -1,8 +1,11 @@
 <?php namespace Ccovey\LdapAuth;
 
+use Illuminate\Contracts\Auth\Authenticatable as AuthenticatableContract;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Auth;
+use Illuminate\Auth\Authenticatable;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\DB;
 use Symfony\Component\Security\Core\Role\Role;
 use Symfony\Component\Security\Core\User\UserInterface;
 
@@ -11,11 +14,12 @@ use Symfony\Component\Security\Core\User\UserInterface;
  *
  * @author ccovey
  */
-class LdapUser extends Model implements UserInterface
+class LdapUser extends Model implements UserInterface, AuthenticatableContract
 {
+	use Authenticatable;
 	protected $attributes;
 
-	public function __construct($attributes)
+	public function __construct($attributes = [])
 	{
 		$this->attributes = $attributes;
 	}
@@ -24,7 +28,7 @@ class LdapUser extends Model implements UserInterface
 	 *
 	 * @return mixed
 	 */
-    public function getAuthIdentifier()
+    public function getUsername()
 	{
 		$username = (Config::has('auth.username_field')) ? Config::get('auth.username_field') : 'username';
 		return $this->attributes[$username];
@@ -35,7 +39,7 @@ class LdapUser extends Model implements UserInterface
 	 *
 	 * @return string
 	 */
-	public function getAuthPassword()
+	public function getPassword()
 	{
 		return $this->attributes['password'];
 	}
@@ -61,15 +65,6 @@ class LdapUser extends Model implements UserInterface
 		$this->attributes[$this->getRememberTokenName()] = $value;
 	}
 
-	/**
-	 * Get the column name for the "remember me" token.
-	 *
-	 * @return string
-	 */
-	public function getRememberTokenName()
-	{
-		return 'remember_token';
-	}
 
 	/**
 	 * Dynamically access the user's attributes.
@@ -138,19 +133,6 @@ class LdapUser extends Model implements UserInterface
 	}
 
 	/**
-	 * Returns the password used to authenticate the user.
-	 *
-	 * This should be the encoded password. On authentication, a plain-text
-	 * password will be salted, encoded, and then compared to this value.
-	 *
-	 * @return string The password
-	 */
-	public function getPassword()
-	{
-		// TODO: Implement getPassword() method.
-	}
-
-	/**
 	 * Returns the salt that was originally used to encode the password.
 	 *
 	 * This can return null if the password was not encoded using a salt.
@@ -159,18 +141,9 @@ class LdapUser extends Model implements UserInterface
 	 */
 	public function getSalt()
 	{
-		// TODO: Implement getSalt() method.
+		return null;
 	}
 
-	/**
-	 * Returns the username used to authenticate the user.
-	 *
-	 * @return string The username
-	 */
-	public function getUsername()
-	{
-		// TODO: Implement getUsername() method.
-	}
 
 	/**
 	 * Removes sensitive data from the user.

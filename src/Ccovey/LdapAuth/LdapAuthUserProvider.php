@@ -2,9 +2,11 @@
 namespace Ccovey\LdapAuth;
 
 use adLDAP;
+use Illuminate\Auth\GenericUser;
 use Illuminate\Contracts\Auth\UserProvider;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Collection;
 
 /**
  * Class to build array to send to GenericUser
@@ -33,9 +35,9 @@ class LdapAuthUserProvider implements UserProvider
 	 * @param array $config
 	 * @param string $model
 	 */
-	public function __construct(adLDAP\adLDAP $conn, Array $config, $model = null)
+	public function __construct( Array $config = null, $model = '', adLDAP\adLDAP $ad)
 	{
-		$this->ad = $conn;
+		$this->ad = $ad;
 
 		$this->config = $config;
 
@@ -47,35 +49,36 @@ class LdapAuthUserProvider implements UserProvider
 	 *
 	 * @param  mixed  $identifier
 	 * @param  mixed  $ldapIdentifier; default to null
+	 *
 	 * @return \Illuminate\Auth\GenericUser|null
 	 */
 	public function retrieveByID($identifier, $ldapIdentifier = null)
 	{
-		if( is_null($ldapIdentifier) ) {
-			$ldapIdentifier = $identifier;
-		}
 		$ldapUserInfo = null;
+		$model = $this->createModel();
+		if(is_null($model)){
+			return null;
+		}
+		else {
+			$user = $model->newQuery()
+			              ->find($identifier)->toArray();
+		}
 
-		$infoCollection = $this->ad->user()->infoCollection($ldapIdentifier, array('*') );
+		if(is_null($user)){
+			return null;
+		}
+		else if(is_null($ldapIdentifier)) {
+			$ldapIdentifier = $user[$this->getUsernameField()];
+		}
 
+		$infoCollection = $this->ad->user()->infoCollection($ldapIdentifier, ['*'] );
 		if ( $infoCollection ) {
 			$ldapUserInfo = $this->setInfoArray($infoCollection);
-
-			if ($this->model) {
-				$model = $this->createModel()
-									->newQuery()
-									->where($this->getUsernameField(), $identifier)
-									->first();
-
-				if ( ! is_null($model) ) {
-					return $this->addLdapToModel($model, $ldapUserInfo);
-				}
-			}
-			else {
-		        return new LdapUser((array) $ldapUserInfo);
-	        }
+			return $this->addLdapToModel($user, $ldapUserInfo);
 		}
-		return null;
+		else {
+			return null;
+		}
 	}
 
 	/**
@@ -210,29 +213,24 @@ class LdapAuthUserProvider implements UserProvider
 		return $info;
 	}
 
-	/**
-	 *
-	 * @return \Illuminate\Auth\GenericUser|Model
-	 */
-	public function createModel()
-	{
-		$model = '\\' . ltrim($this->model, '\\');
 
-		return new $model;
-	}
 
 	/**
 	 * Add Ldap fields to current user model.
 	 *
-	 * @param Model $model
+	 * @param array $model
 	 * @param array $ldap
-	 * @return \Illuminate\Auth\GenericUser
+	 * @return LdapUser
 	 */
 	protected function addLdapToModel($model, $ldap)
 	{
-		$combined = $ldap + $model->getAttributes();
+		$combined = $ldap + $model;
+		$user = $this->createModel();
+		foreach($combined as $key=>$value){
+			$user->{$key} = $value;
+		}
 
-		return $model->fill($combined);
+		return $user;
 	}
 
 	/**
@@ -270,6 +268,17 @@ class LdapAuthUserProvider implements UserProvider
 		}
 
 		return $grps;
+	}
+	/**
+	 * Create a new instance of the model.
+	 *
+	 * @return \Illuminate\Database\Eloquent\Model
+	 */
+	public function createModel()
+	{
+		$class = '\\'.ltrim($this->model, '\\');
+
+		return new $class;
 	}
 
 	public function getModel()
