@@ -13,6 +13,6 @@ return [
     'use_ssl' => true, // If TLS is true this MUST be false.
     'use_tls' => false, // If SSL is true this MUST be false.
 
-    'real_primary_group' => true, // Returns the primary group (an educated guess).
+    'real_primary_group' => false, // For AD ONLY! - Returns the primary group (an educated guess).
     'recursive_groups' => true,
 ];

@@ -2,7 +2,6 @@
 namespace Ccovey\LdapAuth;
 
 use adLDAP;
-use Illuminate\Auth\GenericUser;
 use Illuminate\Contracts\Auth\UserProvider;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Database\Eloquent\Model;
@@ -33,7 +32,7 @@ class LdapAuthUserProvider implements UserProvider
 	/**
 	 * DI in adLDAP object for use throughout
 	 *
-	 * @param adLDAP\adLDAP $conn
+	 * @param adLDAP\adLDAP $ad
 	 * @param array $config
 	 * @param string $model
 	 */
