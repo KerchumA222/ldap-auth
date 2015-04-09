@@ -23,7 +23,9 @@ class LdapAuthServiceProvider extends ServiceProvider {
 	 */
 	public function boot()
 	{
-		//$this->package('ccovey/ldap-auth');
+        $this->publishes([
+            __DIR__.'/../../../config/adldap.php' => config_path('package.php')
+        ], 'config');
 	}
 
 	/**
@@ -33,11 +35,6 @@ class LdapAuthServiceProvider extends ServiceProvider {
 	 */
 	public function register()
 	{
-		/*$this->app['auth'] = $this->app->share(function($app)
-		{
-			$app['app.loaded'] = true;
-			return new LdapAuthManager($app);
-		});*/
 		$this->app->singleton('auth', function($app)
 		{
 			// Once the authentication service has actually been requested by the developer
