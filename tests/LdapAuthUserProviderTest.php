@@ -32,18 +32,6 @@ class LdapAuthUserProviderTest extends PHPUnit_Framework_TestCase
 		m::close();
 	}
 
-	public function testRetrieveByIDWithoutModelReturnsNull()
-	{
-		//$this->ad->shouldReceive('infoCollection')->with($this->ident, ['*'])->andReturn(false);
-
-		$user = $this->getProviderMock($this->ad);
-
-		$returned = $user->retrieveByID($this->ident);
-
-		$this->assertNull($returned);
-	}
-
-
 	public function testRetrieveByIDWithModelAndNoUserInLDAPReturnsNull()
 	{
 		$this->ad->shouldReceive('infoCollection')
@@ -92,7 +80,7 @@ class LdapAuthUserProviderTest extends PHPUnit_Framework_TestCase
 	protected function getProviderMock($conn, $model = null)
 	{
 		return $this->getMock('Ccovey\LdapAuth\LdapAuthUserProvider', 
-			array('createModel'), array($this->config, $model, $conn));
+			array('createModel'), array($conn, $this->config, $model));
 	}
 
 	protected function getLdapInfo()

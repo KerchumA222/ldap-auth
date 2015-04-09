@@ -7,6 +7,8 @@ use Illuminate\Contracts\Auth\UserProvider;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Session;
+use Symfony\Component\Debug\Exception\ClassNotFoundException;
 
 /**
  * Class to build array to send to GenericUser
@@ -35,7 +37,7 @@ class LdapAuthUserProvider implements UserProvider
 	 * @param array $config
 	 * @param string $model
 	 */
-	public function __construct( Array $config = null, $model = '', adLDAP\adLDAP $ad)
+	public function __construct(adLDAP\adLDAP $ad, Array $config = null, $model = '')
 	{
 		$this->ad = $ad;
 
@@ -54,26 +56,27 @@ class LdapAuthUserProvider implements UserProvider
 	 */
 	public function retrieveByID($identifier, $ldapIdentifier = null)
 	{
-		$ldapUserInfo = null;
 		$model = $this->createModel();
-		if(is_null($model)){
-			return null;
-		}
-		else {
-			$user = $model->newQuery()
-			              ->find($identifier)->toArray();
-		}
-
+		$user = $model->newQuery()
+			->find($identifier);
 		if(is_null($user)){
 			return null;
 		}
 		else if(is_null($ldapIdentifier)) {
-			$ldapIdentifier = $user[$this->getUsernameField()];
+			$ldapIdentifier = $user->{$this->getUsernameField()};
 		}
 
-		$infoCollection = $this->ad->user()->infoCollection($ldapIdentifier, ['*'] );
-		if ( $infoCollection ) {
-			$ldapUserInfo = $this->setInfoArray($infoCollection);
+		$ldapUserInfo = Session::get('ldapUserInfo', function() use($ldapIdentifier){
+			$infoCollection = $this->ad->user()->infoCollection($ldapIdentifier, ['*'] );
+			if ( $infoCollection ) {
+				$info = $this->setInfoArray($infoCollection);
+				Session::put('ldapUserInfo', $info);
+				return $info;
+			}
+			return null;
+		});
+
+		if ($ldapUserInfo) {
 			return $this->addLdapToModel($user, $ldapUserInfo);
 		}
 		else {
@@ -138,21 +141,20 @@ class LdapAuthUserProvider implements UserProvider
 			throw new \InvalidArgumentException('"'.$this->getUsernameField().'" field is missing');
 		}
 
-		if ($this->model) {
-			$query = $this->createModel()->newQuery();
+		$query = $this->createModel()->newQuery();
 
-			foreach ($credentials as $key => $value)
-			{
-				if ( ! str_contains($key, 'password')) $query->where($key, $value);
-			}
-
-			$model = $query->first();
-			if($model) {
-				return $this->retrieveByID($model->getKey(), $model->{$this->getUsernameField()});
-			}
+		foreach ($credentials as $key => $value)
+		{
+			if ( ! str_contains($key, 'password')) $query->where($key, $value);
 		}
 
-		return $this->retrieveByID($user);
+		$model = $query->first();
+		if($model) {
+			return $this->retrieveByID($model->getKey(), $model->{$this->getUsernameField()});
+		}
+
+		return false;
+		//return $this->retrieveByID($user);
 	}
 
 	/**
@@ -218,19 +220,17 @@ class LdapAuthUserProvider implements UserProvider
 	/**
 	 * Add Ldap fields to current user model.
 	 *
-	 * @param array $model
+	 * @param Model $model
 	 * @param array $ldap
 	 * @return LdapUser
 	 */
 	protected function addLdapToModel($model, $ldap)
 	{
-		$combined = $ldap + $model;
-		$user = $this->createModel();
-		foreach($combined as $key=>$value){
-			$user->{$key} = $value;
+		foreach($ldap as $key=>$value){
+			$model->{$key} = $model->{$key}?:$value;
 		}
 
-		return $user;
+		return $model;
 	}
 
 	/**
@@ -277,8 +277,12 @@ class LdapAuthUserProvider implements UserProvider
 	public function createModel()
 	{
 		$class = '\\'.ltrim($this->model, '\\');
+		$model = new $class;
+		if(is_null($model)){
+			throw new ClassNotFoundException();
+		}
 
-		return new $class;
+		return $model;
 	}
 
 	public function getModel()
