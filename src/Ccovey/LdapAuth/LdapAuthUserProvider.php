@@ -36,7 +36,7 @@ class LdapAuthUserProvider implements UserProvider
 	 * @param array $config
 	 * @param string $model
 	 */
-	public function __construct(adLDAP\adLDAP $ad, Array $config = null, $model = '')
+	public function __construct(adLDAP\adLDAP $ad, array $config = null, $model = '')
 	{
 		$this->ad = $ad;
 
