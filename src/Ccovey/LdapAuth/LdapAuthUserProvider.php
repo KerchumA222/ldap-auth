@@ -5,7 +5,6 @@ use adLDAP;
 use Illuminate\Contracts\Auth\UserProvider;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Session;
 use Symfony\Component\Debug\Exception\ClassNotFoundException;
 
@@ -61,26 +60,7 @@ class LdapAuthUserProvider implements UserProvider
 		if(is_null($user)){
 			return null;
 		}
-		else if(is_null($ldapIdentifier)) {
-			$ldapIdentifier = $user->{$this->getUsernameField()};
-		}
-
-		$ldapUserInfo = Session::get('ldapUserInfo', function() use($ldapIdentifier){
-			$infoCollection = $this->ad->user()->infoCollection($ldapIdentifier, ['*'] );
-			if ( $infoCollection ) {
-				$info = $this->setInfoArray($infoCollection);
-				Session::put('ldapUserInfo', $info);
-				return $info;
-			}
-			return null;
-		});
-
-		if ($ldapUserInfo) {
-			return $this->addLdapToModel($user, $ldapUserInfo);
-		}
-		else {
-			return null;
-		}
+        return $this->getUserFromLDAP($user, $ldapIdentifier);
 	}
 
 	/**
@@ -92,15 +72,12 @@ class LdapAuthUserProvider implements UserProvider
 	 */
 	public function retrieveByToken($identifier, $token)
 	{
-		if ($this->model) {
-			$model = $this->createModel();
-
-			return $model->newQuery()
-							->where($this->getUsernameField(), $identifier)
-							->where($model->getRememberTokenName(), $token)
-							->first();
-		}
-		return null;
+        $model = $this->createModel();
+        $model = $model->newQuery()
+                ->where($this->getUsernameField(), $identifier)
+                ->where($model->getRememberTokenName(), $token)
+                ->first();
+		return $this->getUserFromLDAP($model);
 	}
 
 	/**
@@ -112,20 +89,19 @@ class LdapAuthUserProvider implements UserProvider
 	 */
 	public function updateRememberToken(Authenticatable $user, $token)
 	{
-		if ($this->model) {
-			$model = $this->createModel()
-								->newQuery()
-								->where($this->getUsernameField(), $user->getAuthIdentifier())
-								->first();
-			if ( ! is_null($model) ) {
-				$model->setAttribute($model->getRememberTokenName(), $token);
-				if (is_a($model, '\Ardent')) {
-					$model->forceSave();
-				} else {
-					$model->save();
-				}
-			}
-		}
+        $model = $this->createModel()
+                            ->newQuery()
+                            ->where($this->getUsernameField(), $user->getAuthIdentifier())
+                            ->first();
+        if ( ! is_null($model) ) {
+            $model->setAttribute($model->getRememberTokenName(), $token);
+            if (is_a($model, '\Ardent')) {
+                $model->forceSave();
+            }
+            else {
+                $model->save();
+            }
+        }
 	}
 
 	/**
@@ -149,11 +125,10 @@ class LdapAuthUserProvider implements UserProvider
 
 		$model = $query->first();
 		if($model) {
-			return $this->retrieveByID($model->getKey(), $model->{$this->getUsernameField()});
+			return $this->getUserFromLDAP($model);
 		}
 
 		return false;
-		//return $this->retrieveByID($user);
 	}
 
 	/**
@@ -282,20 +257,13 @@ class LdapAuthUserProvider implements UserProvider
 	/**
 	 * Create a new instance of the model.
 	 *
-	 * @return \Illuminate\Database\Eloquent\Model
+	 * @return \Illuminate\Database\Eloquent\Model|\Symfony\Component\Security\Core\User\UserInterface|\Illuminate\Contracts\Auth\Authenticatable
      * @throws ClassNotFoundException
 	 */
 	public function createModel()
 	{
 		$class = '\\'.ltrim($this->model, '\\');
-		$model = new $class;
-		if(is_null($model)){
-			throw new ClassNotFoundException(
-                "Class $class not found. Please set your LDAP configuration property 'model' to the name of your User model.",
-                null);
-		}
-
-		return $model;
+		return new $class;
 	}
 
     /**
@@ -313,4 +281,33 @@ class LdapAuthUserProvider implements UserProvider
 	{
 		return isset($this->config['username_field'])?$this->config['username_field']:'username';
 	}
+
+    /**
+     * @param $ldapIdentifier
+     * @param $user
+     * @return LdapUser|null
+     */
+    public function getUserFromLDAP($user, $ldapIdentifier = null)
+    {
+        if (is_null($ldapIdentifier)) {
+            $ldapIdentifier = $user->{$this->getUsernameField()};
+        }
+
+        $ldapUserInfo = Session::get('ldapUserInfo', function () use ($ldapIdentifier) {
+            $infoCollection = $this->ad->user()->infoCollection($ldapIdentifier, ['*']);
+            if ($infoCollection) {
+                $info = $this->setInfoArray($infoCollection);
+                Session::put('ldapUserInfo', $info);
+                return $info;
+            }
+            return null;
+        });
+
+        if ($ldapUserInfo) {
+            return $this->addLdapToModel($user, $ldapUserInfo);
+        }
+        else {
+            return null;
+        }
+    }
 }
