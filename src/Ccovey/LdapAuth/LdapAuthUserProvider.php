@@ -225,10 +225,21 @@ class LdapAuthUserProvider implements UserProvider
 	 */
 	protected function addLdapToModel($model, $ldap)
 	{
-		foreach($ldap as $key=>$value){
-			$model->{$key} = $model->{$key}?:$value;
-		}
-
+        if(is_a($model, '\Ccovey\LdapAuth\LdapUser')){
+            $model->ldap_attributes = $ldap;
+        }
+        if(!empty($model->ldap_persistent)) {
+            //dd(['ldap'=>$ldap, 'model'=>$model]);
+            foreach ($model->ldap_persistent as $key => $value) {
+                if (!is_string($key)) {
+                    $key = $value;
+                }
+                if (!is_null($ldap[$value])) {
+                    $model->{$key} = $ldap[$value];
+                }
+            }
+            $model->save();
+        }
 		return $model;
 	}
 
@@ -272,24 +283,33 @@ class LdapAuthUserProvider implements UserProvider
 	 * Create a new instance of the model.
 	 *
 	 * @return \Illuminate\Database\Eloquent\Model
+     * @throws ClassNotFoundException
 	 */
 	public function createModel()
 	{
 		$class = '\\'.ltrim($this->model, '\\');
 		$model = new $class;
 		if(is_null($model)){
-			throw new ClassNotFoundException();
+			throw new ClassNotFoundException(
+                "Class $class not found. Please set your LDAP configuration property 'model' to the name of your User model.",
+                null);
 		}
 
 		return $model;
 	}
 
-	public function getModel()
+    /**
+     * @return string
+     */
+    public function getModel()
 	{
 		return $this->model;
 	}
 
-	protected function getUsernameField()
+    /**
+     * @return string
+     */
+    protected function getUsernameField()
 	{
 		return isset($this->config['username_field'])?$this->config['username_field']:'username';
 	}

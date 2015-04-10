@@ -5,7 +5,6 @@ use Illuminate\Support\Facades\Config;
 use Illuminate\Auth;
 use Illuminate\Auth\Authenticatable;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\DB;
 use Symfony\Component\Security\Core\Role\Role;
 use Symfony\Component\Security\Core\User\UserInterface;
 
@@ -17,12 +16,9 @@ use Symfony\Component\Security\Core\User\UserInterface;
 class LdapUser extends Model implements UserInterface, AuthenticatableContract
 {
 	use Authenticatable;
-	protected $attributes;
+	public $ldap_attributes = [];
+    public $ldap_persistent = [];
 
-	public function __construct($attributes = [])
-	{
-		$this->attributes = $attributes;
-	}
     /**
 	 * Get the unique identifier for the user.
 	 *
@@ -31,7 +27,7 @@ class LdapUser extends Model implements UserInterface, AuthenticatableContract
     public function getUsername()
 	{
 		$username = (Config::has('auth.username_field')) ? Config::get('auth.username_field') : 'username';
-		return $this->attributes[$username];
+		return $this->{$username};
 	}
 
     /**
@@ -42,73 +38,6 @@ class LdapUser extends Model implements UserInterface, AuthenticatableContract
 	public function getPassword()
 	{
 		return $this->attributes['password'];
-	}
-
-	/**
-	 * Get the token value for the "remember me" session.
-	 *
-	 * @return string
-	 */
-	public function getRememberToken()
-	{
-		return array_get($this->attributes, $this->getRememberTokenName());
-	}
-
-	/**
-	 * Set the token value for the "remember me" session.
-	 *
-	 * @param  string  $value
-	 * @return void
-	 */
-	public function setRememberToken($value)
-	{
-		$this->attributes[$this->getRememberTokenName()] = $value;
-	}
-
-
-	/**
-	 * Dynamically access the user's attributes.
-	 *
-	 * @param  string  $key
-	 * @return mixed
-	 */
-	public function __get($key)
-	{
-		return $this->attributes[$key];
-	}
-
-	/**
-	 * Dynamically set an attribute on the user.
-	 *
-	 * @param  string  $key
-	 * @param  mixed   $value
-	 * @return void
-	 */
-	public function __set($key, $value)
-	{
-		$this->attributes[$key] = $value;
-	}
-
-	/**
-	 * Dynamically check if a value is set on the user.
-	 *
-	 * @param string $key
-	 * @return bool
-	 */
-	public function __isset($key)
-	{
-		return isset($this->attributes[$key]);
-	}
-
-	/**
-	 * Dynamically unset a value on the user.
-	 *
-	 * @param string $key
-	 * @return bool
-	 */
-	public function __unset($key)
-	{
-		unset($this->attributes[$key]);
 	}
 
 	/**
