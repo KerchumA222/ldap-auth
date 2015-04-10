@@ -4,17 +4,18 @@ Active Directory LDAP Authentication
 Laravel 5 Active Directory LDAP Authentication driver forked from ccovey/ldap-auth.
 The goal is to provide a more robust LDAP Auth Driver for Laravel 5.
 
+Implemented Features
+--------------------
+* Simple Config file that can be published via artisan
+* Ability to map specific values to the Model from LDAP
+* Ability to map specific persistent values to the model from LDAP to be stored in the database
+* Session level persistence for User information retrieved from LDAP (for performance)
+
 Future (near future) features will include:
 -------------------------------------------
 * Full coverage PHPUnit tests
-* Ability to map specific values to the Model from LDAP
-* Ability to map specific persistant values to the model from LDAP to be stored in the database
 * Ability to assign roles in database and merge with LDAP roles
 * Every possible Laravel Authentication method implemented. Some are not possible, but others may be (like updating a password)
-* Simpler Config file that can be published via artisan
-* Other artisan commands (for example publishing ldap-auth migrations)
-* Integration with the Cache facade to enhance performance
-* Session level persistance for User information retrieved from previously mentioned mappings (again for performance)
 * Ability (configurable) to deny access to the application even with valid LDAP credentials when the user is not in the application database
 * And finally, maybe we could be able to remove some of the setup steps and automate them.
 
@@ -26,7 +27,7 @@ To install this [Active Directory LDAP Authentication](https://github.com/ccovey
 {
   ...
   "require": {
-    "laravel/framework": "4.*",
+    "laravel/framework": "5.*",
     ...
     "ccovey/ldap-auth": "3.*",
   },
@@ -39,14 +40,12 @@ To install this [Active Directory LDAP Authentication](https://github.com/ccovey
 }
 ```
 
-Then run
-
-`composer install` or `composer update` as appropriate
+Then run `composer update`.
 NOTE: You may have to run composer with the `--prefer-source` flag in order to install this from GitHub. You will also need git installed on your machine. This is temporary and will be resolved when this is hosted on packagist.
 
 Once you have finished downloading the package from GitHub you need to tell your Application to use the LDAP service provider.
 
-Open `config/app.php` and find
+Open `app/config/app.php` and find
 
 `Illuminate\Auth\AuthServiceProvider`
 
@@ -62,40 +61,16 @@ Configuration
 -------------
 To specify the username field to be used in `app/config/auth.php` set a key / value pair `'username_field' => 'fieldname'` This will default to `username` if you don't provide one.
 
-To set up your adLDAP for connections to your domain controller, create a file app/config/adldap.php This will provide all the configuration values for your connection. For all configuration options an array like the one below should be provided.
-
-It is important to note that the only required options are `account_suffix`, `base_dn`, and `domain_controllers`The others provide either security or more information. If you don't want to use the others simply delete them.
-
-```php
-return array(
-	'account_suffix' => "@domain.local",
-
-	'domain_controllers' => array("dc1.domain.local", "dc2.domain.local"), // An array of domains may be provided for load balancing.
-
-	'base_dn' => 'DC=domain,DC=local',
-
-	'admin_username' => 'user',
-
-	'admin_password' => 'password',
-	'real_primary_group' => true, // Returns the primary group (an educated guess).
-
-	'use_ssl' => true, // If TLS is true this MUST be false.
-
-	'use_tls' => false, // If SSL is true this MUST be false.
-
-	'recursive_groups' => true,
-);
-```
+To set up your adLDAP for connections to your domain controller run `php artisan vendor:publish` in your terminal or command line from your project directory. Then you can change your configuration options in `app\config\adldap.php`
 
 Usage
 -----
-$guarded is now defaulted to all so to use a model you must change to `$guarded = []`. If you store Roles or similar sensitive information make sure that you add that to the guarded array.
-
 Use of `Auth` is the same as with the default service provider.
 
-By Default this will have the `username (samaccountname)`, `displayname`, `primary group`, as well as all groups user is a part of
+By default LDAP will grab `username (samaccountname)`, `displayname`, `primary group`, as well as all groups user is a part of.
 
-To edit what is returned you can specify in `config/auth.php` under the `fields` key.
+To change what LDAP grabs you can modify `config/auth.php` and add an array called `fields` with your desired attributes.
+NOTE: These attributes do not automatically get put on the model directly, but will be accessible by $user->ldap_attributes. There are instructions below to properly assign model bindings.
 
 For more information on what fields from AD are available to you visit http://goo.gl/6jL4V
 
@@ -103,9 +78,26 @@ You may also get a complete user list for a specific OU by defining the `userLis
 
 Model Usage
 -----------
-You can still use a model with this implementation as well if you want. ldap-auth will take your fields from ldap and attach them to the model allowing you to access things such as roles / permissions from the model if the account is valid in Active Directory. It is also important to note that no authentication takes place off of the model. All authentication is done from Active Directory and if they are removed from AD but still in a users table they WILL NOT be able to log in.
+You must use a model with this implementation. 
+ldap-auth can take your fields from ldap and attach them to the model allowing you to access things such as roles / permissions from the model.
+You can also specify certain fields to persist to your database from LDAP:
+```php
+use Ccovey\LdapAuth\LdapUser;
+class User extends LdapUser {
+	...
+	public $groups; //having this prevents Laravel from saving the '$groups' attribute to the database
+	public $ldap_persistent = [
+		// model_attribute_name=>ldap_attribute_name
+		'name' => 'displayname', //$user->name gets re-saved to the database upon login
+		'lastname' => 'sn',
+		'groups' //You can also use this convention when you are mapping to an attribute of the same name
+	];
+	protected $appends = ['groups']; //tells Laravel to output this attribute when being converted to arrays or JSON
+	public function getGroupsAttribute(){ //goes with above
+		return $this->groups;
+	}
+    	...
 ```
-
-To upgrade your Laravel application, you can also read [this guide](http://laravel.com/docs/upgrade#upgrade-4.1.26).
-
-And watch [this video](https://laracasts.com/lessons/laravel-updating-to-4-1-26).
+This is useful for when you want to query your list of users for some attribute. (EX. LDAP attribute `sn`, the user's surname, could be persisted and searched on with `User::where('lastname', '=', 'Kerchum')->first()`)
+It is also important to note that no authentication takes place off of the model. 
+All authentication is done from Active Directory and if the user is removed from AD but still in a users table they WILL NOT be able to log in.
