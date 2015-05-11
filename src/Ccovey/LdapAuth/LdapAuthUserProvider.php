@@ -128,7 +128,7 @@ class LdapAuthUserProvider implements UserProvider
 			return $this->getUserFromLDAP($model);
 		}
 
-		return false;
+		return null;
 	}
 
 	/**
