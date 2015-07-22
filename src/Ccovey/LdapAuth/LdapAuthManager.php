@@ -57,10 +57,17 @@ class LdapAuthManager extends AuthManager
 	 */
 	protected function getLdapConfig()
     {
-        if (is_array($this->app['config']['adldap'])){
-	        return $this->app['config']['adldap'];
-        }
-        return array();
+        return [
+			'account_suffix' => env('LDAP_ACCOUNT_SUFFIX'),
+			'domain_controllers' => explode('|',env('LDAP_DOMAIN_CONTROLLERS')),
+			'base_dn' => env('LDAP_BASE_DN'),
+			'admin_username' => env('LDAP_ADMIN_USERNAME'),
+			'admin_password' => env('LDAP_ADMIN_PASSWORD'),
+			'real_primary_group' => env('LDAP_REAL_PRIMARY_GROUP', false),
+			'use_ssl' => env('LDAP_USE_SSL', false),
+			'use_tls' => env('LDAP_USE_TLS', false),
+			'recursive_groups' => env('LDAP_RECURSIVE_GROUPS', true)
+		]
     }
 }
 
