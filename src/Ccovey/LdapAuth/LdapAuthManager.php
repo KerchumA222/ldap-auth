@@ -1,8 +1,8 @@
 <?php
 namespace Ccovey\LdapAuth;
 
+use Adldap\Adldap;
 use Exception;
-use adLDAP\adLDAP;
 use Illuminate\Auth\Guard;
 use Illuminate\Auth\AuthManager;
 
@@ -29,7 +29,7 @@ class LdapAuthManager extends AuthManager
      */
     protected function createLdapProvider()
     {
-        $ad = new adLDAP($this->getLdapConfig());
+        $ad = new Adldap($this->getLdapConfig());
 
         $model = null;
         
