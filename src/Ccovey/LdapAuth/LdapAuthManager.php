@@ -2,6 +2,7 @@
 namespace Ccovey\LdapAuth;
 
 use Adldap\Adldap;
+use Adldap\Connections\Configuration;
 use Exception;
 use Illuminate\Auth\Guard;
 use Illuminate\Auth\AuthManager;
@@ -53,21 +54,20 @@ class LdapAuthManager extends AuthManager
     }
 
 	/**
-	 * @return array
+	 * @return \Adldap\Connections\Configuration
 	 */
 	protected function getLdapConfig()
     {
-        return [
-			'account_suffix' => env('LDAP_ACCOUNT_SUFFIX'),
-			'domain_controllers' => explode('|',env('LDAP_DOMAIN_CONTROLLERS')),
-			'base_dn' => env('LDAP_BASE_DN'),
-			'admin_username' => env('LDAP_ADMIN_USERNAME'),
-			'admin_password' => env('LDAP_ADMIN_PASSWORD'),
-			'real_primary_group' => env('LDAP_REAL_PRIMARY_GROUP', false),
-			'use_ssl' => env('LDAP_USE_SSL', false),
-			'use_tls' => env('LDAP_USE_TLS', false),
-			'recursive_groups' => env('LDAP_RECURSIVE_GROUPS', true)
-		];
+	    $config = new Configuration();
+
+		$config->getAccountSuffix(env('LDAP_ACCOUNT_SUFFIX'));
+        $config->setDomainControllers(explode('|',env('LDAP_DOMAIN_CONTROLLERS')));
+	    $config->setBaseDn(env('LDAP_BASE_DN'));
+	    $config->setAdminUsername(env('LDAP_ADMIN_USERNAME'));
+	    $config->setUseSSL(env('LDAP_USE_SSL', false));
+	    $config->setUseTLS(env('LDAP_USE_SSL', false));
+
+	    return $config;
     }
 }
 
