@@ -5,15 +5,13 @@ use Illuminate\Support\Facades\Config;
 use Illuminate\Auth;
 use Illuminate\Auth\Authenticatable;
 use Illuminate\Database\Eloquent\Model;
-use Symfony\Component\Security\Core\Role\Role;
-use Symfony\Component\Security\Core\User\UserInterface;
 
 /**
  * Description of LdapUser
  *
  * @author ccovey
  */
-class LdapUser extends Model implements UserInterface, AuthenticatableContract
+class LdapUser extends Model implements AuthenticatableContract
 {
 	use Authenticatable;
 	public $ldap_attributes = [];
