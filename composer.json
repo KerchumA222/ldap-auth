@@ -16,6 +16,12 @@
             "email": "KerchumA222@gmail.com"
         }
     ],
+    "repositories": [
+        {
+            "type": "vcs",
+            "url": "https://github.com/Adldap2/Adldap2"
+        }
+    ],
     "require": {
         "php": ">=5.4.0",
         "illuminate/support": "~5.1",
