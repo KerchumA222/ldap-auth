@@ -1,7 +1,7 @@
 <?php
 namespace Ccovey\LdapAuth;
 
-use adLDAP;
+use Adldap\Adldap;
 use Illuminate\Contracts\Auth\UserProvider;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Database\Eloquent\Model;
@@ -18,7 +18,7 @@ class LdapAuthUserProvider implements UserProvider
 	/**
 	 * Active Directory Object
 	 *
-	 * @var adLDAP\adLDAP
+	 * @var \Adldap\Adldap
 	 */
 	protected $ad;
 
@@ -31,11 +31,11 @@ class LdapAuthUserProvider implements UserProvider
 	/**
 	 * DI in adLDAP object for use throughout
 	 *
-	 * @param adLDAP\adLDAP $ad
+	 * @param \Adldap\Adldap $ad
 	 * @param array $config
 	 * @param string $model
 	 */
-	public function __construct(adLDAP\adLDAP $ad, array $config = null, $model = '')
+	public function __construct(Adldap $ad, array $config = null, $model = '')
 	{
 		$this->ad = $ad;
 
@@ -147,7 +147,7 @@ class LdapAuthUserProvider implements UserProvider
 	/**
 	 * Build the array sent to GenericUser for use in Auth::user()
 	 *
-	 * @param adLDAP\adLDAP $infoCollection
+	 * @param \Adldap\Adldap $infoCollection
 	 * @return array $info
 	 */
 	protected function setInfoArray($infoCollection)
@@ -257,7 +257,7 @@ class LdapAuthUserProvider implements UserProvider
 	/**
 	 * Create a new instance of the model.
 	 *
-	 * @return \Illuminate\Database\Eloquent\Model|\Symfony\Component\Security\Core\User\UserInterface|\Illuminate\Contracts\Auth\Authenticatable
+	 * @return \Illuminate\Contracts\Auth\Authenticatable
      * @throws ClassNotFoundException
 	 */
 	public function createModel()
