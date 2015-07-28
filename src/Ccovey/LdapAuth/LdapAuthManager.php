@@ -67,7 +67,7 @@ class LdapAuthManager extends AuthManager
 			'use_ssl' => env('LDAP_USE_SSL', false),
 			'use_tls' => env('LDAP_USE_TLS', false),
 			'recursive_groups' => env('LDAP_RECURSIVE_GROUPS', true)
-		]
+		];
     }
 }
 
