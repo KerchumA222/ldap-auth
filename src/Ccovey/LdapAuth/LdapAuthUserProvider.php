@@ -170,9 +170,9 @@ class LdapAuthUserProvider implements UserProvider
 				}
 			}
 		}else{
-			//if no fields array present default to username and displayName
-			$info['username'] = $infoCollection->samaccountname;
-			$info['displayname'] = $infoCollection->displayName;
+			//if no fields array present default to username and displayname
+			$info['username'] = $infoCollection->samaccountname[0];
+			$info['displayname'] = $infoCollection->displayname[0];
 			$info['primarygroup'] = $this->getPrimaryGroup($infoCollection->distinguishedname);
 			$info['groups'] = $this->getAllGroups($infoCollection->memberof);
 		}
@@ -202,7 +202,6 @@ class LdapAuthUserProvider implements UserProvider
             $model->ldap_attributes = $ldap;
         }
         if(!empty($model->ldap_persistent)) {
-            //dd(['ldap'=>$ldap, 'model'=>$model]);
             foreach ($model->ldap_persistent as $key => $value) {
                 if (!is_string($key)) {
                     $key = $value;
@@ -223,10 +222,7 @@ class LdapAuthUserProvider implements UserProvider
 	 */
 	protected function getPrimaryGroup($groupList)
 	{
-		if(is_array($groupList)){
-			$groupList = $groupList[0];
-		}
-		$groups = explode(',', $groupList);
+		$groups = explode(',', $groupList[0]);
 
 		return substr($groups[1], '3');
 	}
@@ -238,7 +234,7 @@ class LdapAuthUserProvider implements UserProvider
 	 */
 	protected function getAllGroups($groups)
 	{
-		$grps = '';
+		$grps = [];
 		if ( ! is_null($groups) ) {
 			if (!is_array($groups)) {
 				$groups = explode(',', $groups);
@@ -247,7 +243,10 @@ class LdapAuthUserProvider implements UserProvider
 				$splitGroups = explode(',', $group);
 				foreach ($splitGroups as $splitGroup) {
 					if (substr($splitGroup,0, 3) !== 'DC=') {
-						$grps[substr($splitGroup, '3')] = substr($splitGroup, '3');
+						$groupName = substr($splitGroup, '3');
+						if($groupName && !in_array($groupName, $grps)){
+							$grps[] = $groupName;
+						}
 					}
 				}
 			}
