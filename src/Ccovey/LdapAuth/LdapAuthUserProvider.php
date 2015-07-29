@@ -162,21 +162,20 @@ class LdapAuthUserProvider implements UserProvider
 		if ( ! empty($this->config['fields'])) {
 			foreach ($this->config['fields'] as $k => $field) {
 				if ($k == 'groups') {
-					$info[$k] = $this->getAllGroups($infoCollection['memberof']);
+					$info[$k] = $this->getAllGroups($infoCollection->memberof);
 				}elseif ($k == 'primarygroup') {
-					$info[$k] = $this->getPrimaryGroup($infoCollection['distinguishedname']);
+					$info[$k] = $this->getPrimaryGroup($infoCollection->distinguishedname);
 				}else{
-					$info[$k] = $infoCollection[$field];
+					$info[$k] = $infoCollection->$field;
 				}
 			}
 		}else{
 			//if no fields array present default to username and displayName
-			$info['username'] = $infoCollection['samaccountname'];
-			$info['displayname'] = "$infoCollection[cn] $infoCollection[initials] $infoCollection[sn]";
-			$info['primarygroup'] = $this->getPrimaryGroup($infoCollection['distinguishedname']);
-			$info['groups'] = $this->getAllGroups($infoCollection['memberof']);
+			$info['username'] = $infoCollection->samaccountname;
+			$info['displayname'] = $infoCollection->displayName;
+			$info['primarygroup'] = $this->getPrimaryGroup($infoCollection->distinguishedname);
+			$info['groups'] = $this->getAllGroups($infoCollection->memberof);
 		}
-
 		/*
 		* I needed a user list to populate a dropdown
 		* Set userlist to true in app/config/auth.php and set a group in app/config/auth.php as well
@@ -185,7 +184,6 @@ class LdapAuthUserProvider implements UserProvider
 		if ( ! empty($this->config['userList'])) {
 			$info['userlist'] = $this->ad->folder()->listing(array($this->config['group']));
 		}
-
 		return $info;
 	}
 
@@ -225,6 +223,9 @@ class LdapAuthUserProvider implements UserProvider
 	 */
 	protected function getPrimaryGroup($groupList)
 	{
+		if(is_array($groupList)){
+			$groupList = $groupList[0];
+		}
 		$groups = explode(',', $groupList);
 
 		return substr($groups[1], '3');
@@ -294,7 +295,7 @@ class LdapAuthUserProvider implements UserProvider
         }
 
         $ldapUserInfo = Session::get('ldapUserInfo', function () use ($ldapIdentifier) {
-            $infoCollection = $this->ad->user()->info($ldapIdentifier, ['*']);
+            $infoCollection = $this->ad->users()->find($ldapIdentifier, ['*']);
             if ($infoCollection) {
                 $info = $this->setInfoArray($infoCollection);
                 Session::put('ldapUserInfo', $info);

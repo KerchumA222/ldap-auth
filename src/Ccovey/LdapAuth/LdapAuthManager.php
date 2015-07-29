@@ -60,12 +60,16 @@ class LdapAuthManager extends AuthManager
     {
 	    $config = new Configuration();
 
-		$config->getAccountSuffix(env('LDAP_ACCOUNT_SUFFIX'));
+		$config->setAccountSuffix(env('LDAP_ACCOUNT_SUFFIX'));
         $config->setDomainControllers(explode('|',env('LDAP_DOMAIN_CONTROLLERS')));
 	    $config->setBaseDn(env('LDAP_BASE_DN'));
 	    $config->setAdminUsername(env('LDAP_ADMIN_USERNAME'));
-	    $config->setUseSSL(env('LDAP_USE_SSL', false));
-	    $config->setUseTLS(env('LDAP_USE_SSL', false));
+	    $config->setAdminPassword(env('LDAP_ADMIN_PASSWORD'));
+	    env('LDAP_USE_SSL', false)?$config->setUseSSL(true):null;
+	    env('LDAP_USE_TLS', false)?$config->setUseTLS(true):null;
+	    $config->setPersonFilter(['category'=>env('LDAP_PERSON_CATEGORY', 'objectClass'), 'person'=>env('LDAP_PERSON_TYPE', 'person'), ]);
+	    $config->setFollowReferrals(1);
+	    //$config->setUseSSO(true);
 
 	    return $config;
     }
