@@ -2,6 +2,7 @@
 namespace Ccovey\LdapAuth;
 
 use Adldap\Adldap;
+use Exception;
 use Illuminate\Contracts\Auth\UserProvider;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Database\Eloquent\Model;
@@ -74,7 +75,7 @@ class LdapAuthUserProvider implements UserProvider
 	{
         $model = $this->createModel();
         $model = $model->newQuery()
-                ->where($this->getUsernameField(), $identifier)
+                ->where($this->getIdentifierField(), $identifier)
                 ->where($model->getRememberTokenName(), $token)
                 ->first();
 		return $this->getUserFromLDAP($model);
@@ -86,22 +87,17 @@ class LdapAuthUserProvider implements UserProvider
 	 * @param  \Illuminate\Contracts\Auth\Authenticatable  $user
 	 * @param  string  $token
 	 * @return void
+	 * @throws Exception
 	 */
 	public function updateRememberToken(Authenticatable $user, $token)
 	{
-        $model = $this->createModel()
-                            ->newQuery()
-                            ->where($this->getUsernameField(), $user->getAuthIdentifier())
-                            ->first();
-        if ( ! is_null($model) ) {
-            $model->setAttribute($model->getRememberTokenName(), $token);
-            if (is_a($model, '\Ardent')) {
-                $model->forceSave();
-            }
-            else {
-                $model->save();
-            }
-        }
+		$user->setRememberToken($token);
+		if (is_a($user, '\Ardent')) {
+			$user->forceSave();
+		}
+		else {
+			$user->save();
+		}
 	}
 
 	/**
@@ -281,6 +277,15 @@ class LdapAuthUserProvider implements UserProvider
 	{
 		return isset($this->config['username_field'])?$this->config['username_field']:'username';
 	}
+
+	/**
+     * @return string
+     */
+    protected function getIdentifierField()
+	{
+		return isset($this->config['identifier_field'])?$this->config['identifier_field']:'id';
+	}
+
 
     /**
      * @param $ldapIdentifier
