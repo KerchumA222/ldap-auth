@@ -1,7 +1,8 @@
 <?php
 namespace Ccovey\LdapAuth;
 
-use adLDAP;
+use Adldap\Adldap;
+use Exception;
 use Illuminate\Contracts\Auth\UserProvider;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Database\Eloquent\Model;
@@ -18,7 +19,7 @@ class LdapAuthUserProvider implements UserProvider
 	/**
 	 * Active Directory Object
 	 *
-	 * @var adLDAP\adLDAP
+	 * @var \Adldap\Adldap
 	 */
 	protected $ad;
 
@@ -31,11 +32,11 @@ class LdapAuthUserProvider implements UserProvider
 	/**
 	 * DI in adLDAP object for use throughout
 	 *
-	 * @param adLDAP\adLDAP $ad
+	 * @param \Adldap\Adldap $ad
 	 * @param array $config
 	 * @param string $model
 	 */
-	public function __construct(adLDAP\adLDAP $ad, array $config = null, $model = '')
+	public function __construct(Adldap $ad, array $config = null, $model = '')
 	{
 		$this->ad = $ad;
 
@@ -74,7 +75,7 @@ class LdapAuthUserProvider implements UserProvider
 	{
         $model = $this->createModel();
         $model = $model->newQuery()
-                ->where($this->getUsernameField(), $identifier)
+                ->where($this->getIdentifierField(), $identifier)
                 ->where($model->getRememberTokenName(), $token)
                 ->first();
 		return $this->getUserFromLDAP($model);
@@ -86,22 +87,17 @@ class LdapAuthUserProvider implements UserProvider
 	 * @param  \Illuminate\Contracts\Auth\Authenticatable  $user
 	 * @param  string  $token
 	 * @return void
+	 * @throws Exception
 	 */
 	public function updateRememberToken(Authenticatable $user, $token)
 	{
-        $model = $this->createModel()
-                            ->newQuery()
-                            ->where($this->getUsernameField(), $user->getAuthIdentifier())
-                            ->first();
-        if ( ! is_null($model) ) {
-            $model->setAttribute($model->getRememberTokenName(), $token);
-            if (is_a($model, '\Ardent')) {
-                $model->forceSave();
-            }
-            else {
-                $model->save();
-            }
-        }
+		$user->setRememberToken($token);
+		if (is_a($user, '\Ardent')) {
+			$user->forceSave();
+		}
+		else {
+			$user->save();
+		}
 	}
 
 	/**
@@ -147,7 +143,7 @@ class LdapAuthUserProvider implements UserProvider
 	/**
 	 * Build the array sent to GenericUser for use in Auth::user()
 	 *
-	 * @param adLDAP\adLDAP $infoCollection
+	 * @param \Adldap\Adldap $infoCollection
 	 * @return array $info
 	 */
 	protected function setInfoArray($infoCollection)
@@ -170,13 +166,12 @@ class LdapAuthUserProvider implements UserProvider
 				}
 			}
 		}else{
-			//if no fields array present default to username and displayName
-			$info['username'] = $infoCollection->samaccountname;
-			$info['displayname'] = $infoCollection->displayName;
+			//if no fields array present default to username and displayname
+			$info['username'] = $infoCollection->samaccountname[0];
+			$info['displayname'] = $infoCollection->displayname[0];
 			$info['primarygroup'] = $this->getPrimaryGroup($infoCollection->distinguishedname);
 			$info['groups'] = $this->getAllGroups($infoCollection->memberof);
 		}
-
 		/*
 		* I needed a user list to populate a dropdown
 		* Set userlist to true in app/config/auth.php and set a group in app/config/auth.php as well
@@ -185,7 +180,6 @@ class LdapAuthUserProvider implements UserProvider
 		if ( ! empty($this->config['userList'])) {
 			$info['userlist'] = $this->ad->folder()->listing(array($this->config['group']));
 		}
-
 		return $info;
 	}
 
@@ -204,7 +198,6 @@ class LdapAuthUserProvider implements UserProvider
             $model->ldap_attributes = $ldap;
         }
         if(!empty($model->ldap_persistent)) {
-            //dd(['ldap'=>$ldap, 'model'=>$model]);
             foreach ($model->ldap_persistent as $key => $value) {
                 if (!is_string($key)) {
                     $key = $value;
@@ -225,7 +218,7 @@ class LdapAuthUserProvider implements UserProvider
 	 */
 	protected function getPrimaryGroup($groupList)
 	{
-		$groups = explode(',', $groupList);
+		$groups = explode(',', $groupList[0]);
 
 		return substr($groups[1], '3');
 	}
@@ -237,7 +230,7 @@ class LdapAuthUserProvider implements UserProvider
 	 */
 	protected function getAllGroups($groups)
 	{
-		$grps = '';
+		$grps = [];
 		if ( ! is_null($groups) ) {
 			if (!is_array($groups)) {
 				$groups = explode(',', $groups);
@@ -246,7 +239,10 @@ class LdapAuthUserProvider implements UserProvider
 				$splitGroups = explode(',', $group);
 				foreach ($splitGroups as $splitGroup) {
 					if (substr($splitGroup,0, 3) !== 'DC=') {
-						$grps[substr($splitGroup, '3')] = substr($splitGroup, '3');
+						$groupName = substr($splitGroup, '3');
+						if($groupName && !in_array($groupName, $grps)){
+							$grps[] = $groupName;
+						}
 					}
 				}
 			}
@@ -257,7 +253,7 @@ class LdapAuthUserProvider implements UserProvider
 	/**
 	 * Create a new instance of the model.
 	 *
-	 * @return \Illuminate\Database\Eloquent\Model|\Symfony\Component\Security\Core\User\UserInterface|\Illuminate\Contracts\Auth\Authenticatable
+	 * @return \Illuminate\Contracts\Auth\Authenticatable
      * @throws ClassNotFoundException
 	 */
 	public function createModel()
@@ -282,6 +278,15 @@ class LdapAuthUserProvider implements UserProvider
 		return isset($this->config['username_field'])?$this->config['username_field']:'username';
 	}
 
+	/**
+     * @return string
+     */
+    protected function getIdentifierField()
+	{
+		return isset($this->config['identifier_field'])?$this->config['identifier_field']:'id';
+	}
+
+
     /**
      * @param $ldapIdentifier
      * @param $user
@@ -294,7 +299,7 @@ class LdapAuthUserProvider implements UserProvider
         }
 
         $ldapUserInfo = Session::get('ldapUserInfo', function () use ($ldapIdentifier) {
-            $infoCollection = $this->ad->user()->infoCollection($ldapIdentifier, ['*']);
+            $infoCollection = $this->ad->users()->find($ldapIdentifier, ['*']);
             if ($infoCollection) {
                 $info = $this->setInfoArray($infoCollection);
                 Session::put('ldapUserInfo', $info);

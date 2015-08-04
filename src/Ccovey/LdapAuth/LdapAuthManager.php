@@ -1,8 +1,9 @@
 <?php
 namespace Ccovey\LdapAuth;
 
+use Adldap\Adldap;
+use Adldap\Connections\Configuration;
 use Exception;
-use adLDAP\adLDAP;
 use Illuminate\Auth\Guard;
 use Illuminate\Auth\AuthManager;
 
@@ -29,7 +30,7 @@ class LdapAuthManager extends AuthManager
      */
     protected function createLdapProvider()
     {
-        $ad = new adLDAP($this->getLdapConfig());
+        $ad = new Adldap($this->getLdapConfig());
 
         $model = null;
         
@@ -53,14 +54,24 @@ class LdapAuthManager extends AuthManager
     }
 
 	/**
-	 * @return array
+	 * @return \Adldap\Connections\Configuration
 	 */
 	protected function getLdapConfig()
     {
-        if (is_array($this->app['config']['adldap'])){
-	        return $this->app['config']['adldap'];
-        }
-        return array();
+	    $config = new Configuration();
+
+		$config->setAccountSuffix(env('LDAP_ACCOUNT_SUFFIX'));
+        $config->setDomainControllers(explode('|',env('LDAP_DOMAIN_CONTROLLERS')));
+	    $config->setBaseDn(env('LDAP_BASE_DN'));
+	    $config->setAdminUsername(env('LDAP_ADMIN_USERNAME'));
+	    $config->setAdminPassword(env('LDAP_ADMIN_PASSWORD'));
+	    env('LDAP_USE_SSL', false)?$config->setUseSSL(true):null;
+	    env('LDAP_USE_TLS', false)?$config->setUseTLS(true):null;
+	    $config->setPersonFilter(['category'=>env('LDAP_PERSON_CATEGORY', 'objectClass'), 'person'=>env('LDAP_PERSON_TYPE', 'person'), ]);
+	    $config->setFollowReferrals(1);
+	    //$config->setUseSSO(true);
+
+	    return $config;
     }
 }
 

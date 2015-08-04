@@ -23,9 +23,9 @@ class LdapAuthServiceProvider extends ServiceProvider {
 	 */
 	public function boot()
 	{
-        $this->publishes([
+        /*$this->publishes([
             __DIR__.'/../../../config/adldap.php' => config_path('package.php')
-        ], 'config');
+        ], 'config');*/
 	}
 
 	/**

@@ -47,11 +47,11 @@ Once you have finished downloading the package from GitHub you need to tell your
 
 Open `app/config/app.php` and find
 
-`Illuminate\Auth\AuthServiceProvider`
+`Illuminate\Auth\AuthServiceProvider::class`
 
 and replace it with
 
-`Ccovey\LdapAuth\LdapAuthServiceProvider`
+`Ccovey\LdapAuth\LdapAuthServiceProvider::class`
 
 This tells Laravel 5 to use the service provider from the vendor folder.
 
