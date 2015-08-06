@@ -2,10 +2,12 @@
 namespace Ccovey\LdapAuth;
 
 use Adldap\Adldap;
+use Carbon\Carbon;
 use Exception;
 use Illuminate\Contracts\Auth\UserProvider;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Session;
 use Symfony\Component\Debug\Exception\ClassNotFoundException;
 
@@ -155,23 +157,17 @@ class LdapAuthUserProvider implements UserProvider
 		* refer to the adLDAP docs for which fields are available.
 		*/
 		$info = [];
-		if ( ! empty($this->config['fields'])) {
-			foreach ($this->config['fields'] as $k => $field) {
-				if ($k == 'groups') {
-					$info[$k] = $this->getAllGroups($infoCollection->memberof);
-				}elseif ($k == 'primarygroup') {
-					$info[$k] = $this->getPrimaryGroup($infoCollection->distinguishedname);
-				}else{
-					$info[$k] = $infoCollection->$field;
-				}
+		dd($infoCollection);
+		foreach ($infoCollection->getAttributes() as $key=>$value) {
+			if (is_array($value) && $value['count'] == 1 ) {
+				$info[ $key ] = $value[0];
 			}
-		}else{
-			//if no fields array present default to username and displayname
-			$info['username'] = $infoCollection->samaccountname[0];
-			$info['displayname'] = $infoCollection->displayname[0];
-			$info['primarygroup'] = $this->getPrimaryGroup($infoCollection->distinguishedname);
-			$info['groups'] = $this->getAllGroups($infoCollection->memberof);
+			else {
+				$info[ $key ] = $value;
+			}
 		}
+		$info[ 'groups' ] = $this->getAllGroups($infoCollection->memberof);
+		$info[ 'primarygroup' ] = $this->getPrimaryGroup($infoCollection->distinguishedname);
 		/*
 		* I needed a user list to populate a dropdown
 		* Set userlist to true in app/config/auth.php and set a group in app/config/auth.php as well
@@ -197,6 +193,7 @@ class LdapAuthUserProvider implements UserProvider
         if(is_a($model, '\Ccovey\LdapAuth\LdapUser')){
             $model->ldap_attributes = $ldap;
         }
+		if(env(''))
         if(!empty($model->ldap_persistent)) {
             foreach ($model->ldap_persistent as $key => $value) {
                 if (!is_string($key)) {
@@ -298,11 +295,12 @@ class LdapAuthUserProvider implements UserProvider
             $ldapIdentifier = $user->{$this->getUsernameField()};
         }
 
-        $ldapUserInfo = Session::get('ldapUserInfo', function () use ($ldapIdentifier) {
-            $infoCollection = $this->ad->users()->find($ldapIdentifier, ['*']);
+        $ldapUserInfo = Cache::get("ldapUserInfo-$ldapIdentifier", function () use ($ldapIdentifier, $user) {
+	        $fields = array_merge(array_values($user->ldap_persistent), ['memberof', 'distinguishedname', 'guid',]);
+            $infoCollection = $this->ad->users()->find($ldapIdentifier, $fields);
             if ($infoCollection) {
                 $info = $this->setInfoArray($infoCollection);
-                Session::put('ldapUserInfo', $info);
+                Cache::put("ldapUserInfo-$ldapIdentifier", $info, Carbon::now()->addMinutes(10));
                 return $info;
             }
             return null;
