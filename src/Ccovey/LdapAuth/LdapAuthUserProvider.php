@@ -157,7 +157,6 @@ class LdapAuthUserProvider implements UserProvider
 		* refer to the adLDAP docs for which fields are available.
 		*/
 		$info = [];
-		dd($infoCollection);
 		foreach ($infoCollection->getAttributes() as $key=>$value) {
 			if (is_array($value) && $value['count'] == 1 ) {
 				$info[ $key ] = $value[0];
@@ -193,7 +192,6 @@ class LdapAuthUserProvider implements UserProvider
         if(is_a($model, '\Ccovey\LdapAuth\LdapUser')){
             $model->ldap_attributes = $ldap;
         }
-		if(env(''))
         if(!empty($model->ldap_persistent)) {
             foreach ($model->ldap_persistent as $key => $value) {
                 if (!is_string($key)) {
@@ -296,7 +294,7 @@ class LdapAuthUserProvider implements UserProvider
         }
 
         $ldapUserInfo = Cache::get("ldapUserInfo-$ldapIdentifier", function () use ($ldapIdentifier, $user) {
-	        $fields = array_merge(array_values($user->ldap_persistent), ['memberof', 'distinguishedname', 'guid',]);
+	        $fields = array_merge(array_values($user->ldap_persistent), ['memberof', 'distinguishedname',]);
             $infoCollection = $this->ad->users()->find($ldapIdentifier, $fields);
             if ($infoCollection) {
                 $info = $this->setInfoArray($infoCollection);
@@ -305,7 +303,6 @@ class LdapAuthUserProvider implements UserProvider
             }
             return null;
         });
-
         if ($ldapUserInfo) {
             return $this->addLdapToModel($user, $ldapUserInfo);
         }
